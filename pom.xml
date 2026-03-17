@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.squashtest.tm.plugin</groupId>
+    <artifactId>authentication.ldap.ad</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Squash TM 13 – LDAP / AD Authentication Plugin</name>
+    <description>
+        Community LDAP/Active-Directory authentication plugin for Squash TM 13.x.
+        Built for Spring Boot 3 / Spring Security 6 / Spring LDAP 3.
+        Drop the jar into &lt;squash-tm&gt;/plugins/ and add properties to
+        conf/squash.tm.cfg.properties (or as Docker env-vars).
+    </description>
+
+    <properties>
+        <java.version>21</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Match what Squash TM 13 ships with -->
+        <spring-boot.version>3.2.5</spring-boot.version>
+        <spring-security-ldap.version>6.2.4</spring-security-ldap.version>
+        <spring-ldap.version>3.2.3</spring-ldap.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- ── Squash TM core.api – provided by Squash TM at runtime ─────── -->
+        <dependency>
+            <groupId>org.squashtest.tm</groupId>
+            <artifactId>core.api</artifactId>
+            <version>13.0.0.RELEASE</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ── Spring Security LDAP ─────────────────────────────────────── -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-ldap</artifactId>
+            <version>${spring-security-ldap.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.ldap</groupId>
+            <artifactId>spring-ldap-core</artifactId>
+            <version>${spring-ldap.version}</version>
+        </dependency>
+
+        <!-- ── Spring Security Crypto – provided by Squash TM at runtime ── -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ── Spring Security Core – provided by Squash TM at runtime ─── -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-config</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ── Spring JDBC – provided by Squash TM at runtime ──────────── -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ── Spring Context – provided by Squash TM at runtime ────────── -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ── Spring Boot Autoconfigure – provided ─────────────────────── -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ── Logging (SLF4J) – provided ───────────────────────────────── -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Shade: embed spring-security-ldap + spring-ldap-core only.
+                 Everything else is provided by Squash TM. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.5.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals><goal>shade</goal></goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <shadedArtifactAttached>false</shadedArtifactAttached>
+                            <artifactSet>
+                                <includes>
+                                    <include>org.springframework.security:spring-security-ldap</include>
+                                    <include>org.springframework.ldap:spring-ldap-core</include>
+                                </includes>
+                            </artifactSet>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!-- Squash TM public Nexus for resolving squashtest artifacts if needed -->
+    <repositories>
+        <repository>
+            <id>squashtest-public</id>
+            <url>https://nexus.squashtest.org/nexus/repository/maven-squashtest-public-releases/</url>
+        </repository>
+    </repositories>
+</project>

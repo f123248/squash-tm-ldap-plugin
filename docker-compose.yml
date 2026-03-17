@@ -1,0 +1,52 @@
+services:
+  squashtm-pg:
+    container_name: squashtm-pg
+    image: postgres:17
+    restart: always
+    environment:
+      POSTGRES_DB: squashtm
+      POSTGRES_USER: squashtm
+      POSTGRES_PASSWORD: MustB3Ch4ng3d
+    volumes:
+      - squashtm-pg-data:/var/lib/postgresql/data
+
+  squashtm:
+    container_name: squashtm
+    build:
+      context: .
+    image: squash-tm-ldap:13.0.1
+    restart: always
+    depends_on:
+      - squashtm-pg
+    environment:
+      SPRING_PROFILES_ACTIVE: postgresql
+      SPRING_DATASOURCE_URL: jdbc:postgresql://squashtm-pg:5432/squashtm
+      SPRING_DATASOURCE_USERNAME: squashtm
+      SPRING_DATASOURCE_PASSWORD: MustB3Ch4ng3d
+
+      # ── LDAP / AD (required) ─────────────────────────────────────────────
+      AUTHENTICATION_LDAP_SERVER_URL: "ldap://your-ldap-server:389"
+      AUTHENTICATION_LDAP_SERVER_MANAGERDN: "cn=svc-squash,dc=example,dc=com"
+      AUTHENTICATION_LDAP_SERVER_MANAGERPASSWORD: "CHANGEME"
+      AUTHENTICATION_LDAP_USER_SEARCHBASE: "ou=users,dc=example,dc=com"
+      AUTHENTICATION_LDAP_USER_SEARCHFILTER: "(&(uid={0})(objectClass=inetOrgPerson))"
+
+      # ── Active Directory (uncomment & replace above) ──────────────────────
+      # AUTHENTICATION_LDAP_SERVER_URL: "ldap://dc.corp.example.com:3268"
+      # AUTHENTICATION_LDAP_SERVER_MANAGERDN: "svc-squash@corp.example.com"
+      # AUTHENTICATION_LDAP_SERVER_MANAGERPASSWORD: "CHANGEME"
+      # AUTHENTICATION_LDAP_USER_SEARCHBASE: "DC=corp,DC=example,DC=com"
+      # AUTHENTICATION_LDAP_USER_SEARCHFILTER: "(userPrincipalName={0})"
+
+      # ── Feature flags (optional, default: false) ─────────────────────────
+      # AUTHENTICATION_LDAP_ENABLED: "true"           # invalidate local password after LDAP login
+      # AUTHENTICATION_LDAP_AUTO_CREATE_USER: "true"  # auto-create account on first LDAP login
+
+    ports:
+      - 8090:8080
+    volumes:
+      - squashtm-logs:/opt/squash-tm/logs
+
+volumes:
+  squashtm-pg-data:
+  squashtm-logs:
